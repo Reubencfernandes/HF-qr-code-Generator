@@ -487,14 +487,15 @@
 .hf-cta:disabled { opacity: .6; cursor: not-allowed; }
 
 /* Download card layout (screenshot 2) */
-.qr-preview { display:flex; justify-content:center; margin: 1.5rem 0 0.5rem; }
+.qr-preview { display:flex; flex-direction: column; align-items: center; justify-content:center; margin: 1.5rem 0 0.5rem; }
 .qr-phone-bg {
   position: relative;
   width: 380px;
   max-width: 100%;
+  height: auto;
   border-radius: 32px;
   background: linear-gradient(135deg,#f1c40f,#f39c12);
-  padding: 52px 18px 26px;
+  padding: 40px 18px 18px;
   box-shadow: 0 12px 28px rgba(0,0,0,.15);
 }
 
@@ -528,7 +529,7 @@
 .qr-bg-help { text-align:center; color:#fef3c7; font-size: .78rem; margin-top: 10px; }
 
 @media (max-width: 480px) {
-  .qr-phone-bg { padding: 48px 14px 22px; border-radius: 28px; }
+  .qr-phone-bg { padding: 44px 14px 16px; border-radius: 28px; height: auto; }
   .qr-card-v2 { padding: 52px 14px 18px; border-radius: 20px; }
 }
 
@@ -547,19 +548,19 @@
 
 /* Bottom share sheet */
 .qr-share-sheet {
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 4px;
+  position: relative;
+  width: 380px;
+  max-width: 100%;
+  margin: 10px auto 0;
   background: #fff;
-  border-top-left-radius: 18px;
-  border-top-right-radius: 18px;
+  border-radius: 18px;
   box-shadow: 0 -8px 24px rgba(0,0,0,.22);
   display: grid;
   grid-template-columns: 110px 1fr;
   align-items: center;
   gap: 8px 12px;
   padding: 10px 12px 12px;
+  font-family: var(--font-inter), var(--font-geist-sans), system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
 
 .qr-share-sheet .qr-close {
@@ -577,8 +578,9 @@
 .qr-circle {
   width: 36px; height: 36px; border-radius: 9999px; display:flex; align-items:center; justify-content:center;
   background: #f3f4f6; border: 1px solid #e5e7eb; color:#374151;
+  cursor: pointer;
 }
-.qr-share-group { display:flex; flex-direction: column; gap: 6px; }
-.qr-share-label { font-size: 12px; color:#6b7280; margin-left: 8px; }
-.qr-share-actions { display:flex; gap: 14px; align-items:center; }
-.qr-share-texts { display:flex; gap: 18px; color:#6b7280; font-size: 12px; margin-left: 6px; }
+.qr-share-group { display:grid; grid-template-rows: auto auto auto; gap: 6px; justify-items: center; }
+.qr-share-label { font-size: 12px; color:#6b7280; margin-left: 0; text-align: center; letter-spacing: .02em; }
+.qr-share-actions { display:grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items:center; justify-items: center; }
+.qr-share-texts { display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; color:#6b7280; font-size: 12px; text-align: center; }

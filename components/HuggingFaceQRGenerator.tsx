@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { parseHuggingFaceUrl } from '../lib/huggingface';
 import QRCodeWithLogo from './QRCodeWithLogo';
 import { saveAs } from 'file-saver';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Download, Loader2, QrCode, Twitter, Facebook, Linkedin, Sparkles, ExternalLink, CheckCircle2, MessageCircle, Mail, MoreHorizontal, ChevronLeft, Menu } from 'lucide-react';
+import { Download, Twitter, Facebook, Linkedin, ChevronLeft } from 'lucide-react';
 
 const HuggingFaceQRGenerator = () => {
   const [inputUrl, setInputUrl] = useState('');
@@ -19,10 +19,20 @@ const HuggingFaceQRGenerator = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [qrCodeInstance, setQrCodeInstance] = useState<any>(null);
+  const [showQR, setShowQR] = useState(false);
+  const [gradientIndex, setGradientIndex] = useState(0);
+  const gradients = [
+    ['#f1c40f', '#f39c12'],
+    ['#34d399', '#10b981'],
+    ['#60a5fa', '#6366f1'],
+    ['#fb7185', '#f472b6'],
+    ['#f59e0b', '#ef4444']
+  ];
 
   const handleGenerate = async () => {
     setError('');
     setLoading(true);
+    setShowQR(false);
 
     try {
       // Parse the URL to extract username and resource info
@@ -56,26 +66,55 @@ const HuggingFaceQRGenerator = () => {
         originalAvatarUrl: data.avatarUrl,
         qrValue: parsed.profileUrl
       });
+      setShowQR(true);
     } catch (err: any) {
       setError(err.message || 'Invalid URL or username');
       setProfileData(null);
+      setShowQR(false);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleBack = () => {
+    setShowQR(false);
+  };
+
+  const handleCycleBackground = () => {
+    setGradientIndex((prev) => (prev + 1) % gradients.length);
+  };
+
+  const phoneRef = useRef<HTMLDivElement | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+
   const handleDownload = async (format = 'png') => {
     if (!profileData) return;
 
     try {
-      const cardElement = document.getElementById('qr-card');
+      const cardElement = cardRef.current || document.getElementById('qr-card');
+      const phoneElement = phoneRef.current;
 
-      if (format === 'png' || format === 'card') {
-        // Download the entire card with user info
+      if (format === 'full' && phoneElement) {
+        const rect = phoneElement.getBoundingClientRect();
+        const dataUrl = await htmlToImage.toPng(phoneElement, {
+          quality: 1.0,
+          pixelRatio: 2,
+          width: Math.ceil(rect.width),
+          height: Math.ceil(rect.height),
+          style: { margin: '0' }
+        });
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+        saveAs(blob, `huggingface-${profileData.username}-phone.png`);
+      } else if (format === 'png' || format === 'card') {
+        // Download just the inner card
+        const rect = cardElement!.getBoundingClientRect();
         const dataUrl = await htmlToImage.toPng(cardElement!, {
           quality: 1.0,
           backgroundColor: '#ffffff',
           pixelRatio: 2,
+          width: Math.ceil(rect.width),
+          height: Math.ceil(rect.height),
           style: {
             margin: '0',
             borderRadius: '12px'
@@ -115,6 +154,34 @@ const HuggingFaceQRGenerator = () => {
     }
   };
 
+  const handleShareSms = () => {
+    const text = encodeURIComponent(`Check out my Hugging Face profile: ${profileData?.qrValue || ''}`);
+    window.open(`sms:?&body=${text}`, '_blank');
+  };
+
+  const handleShareEmail = () => {
+    const subject = encodeURIComponent('My Hugging Face Profile');
+    const body = encodeURIComponent(`Hey! Check out my Hugging Face profile: ${profileData?.qrValue || ''}`);
+    window.open(`mailto:?subject=${subject}&body=${body}`, '_self');
+  };
+
+  const handleShareNative = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Hugging Face Profile',
+          text: 'Check out my Hugging Face profile!',
+          url: profileData?.qrValue || ''
+        });
+      } else {
+        await navigator.clipboard.writeText(profileData?.qrValue || '');
+        alert('Link copied to clipboard');
+      }
+    } catch (e) {
+      // ignore cancel
+    }
+  };
+
   const getResourceIcon = (type: string) => {
     switch(type) {
       case 'model': return '🤖';
@@ -125,71 +192,102 @@ const HuggingFaceQRGenerator = () => {
   };
 
   const isValid = inputUrl.trim().length > 0
+  
+  // Validate HuggingFace username format
+  const validateInput = (input: string): boolean => {
+    if (!input.trim()) return true; // empty is neutral
+    // Check if it's a valid username (alphanumeric, hyphens, underscores)
+    // or a valid HuggingFace URL
+    const usernamePattern = /^[a-zA-Z0-9_-]+$/;
+    const urlPattern = /huggingface\.co/i;
+    
+    return usernamePattern.test(input) || urlPattern.test(input);
+  };
+  
+  const inputIsInvalid = inputUrl.trim().length > 0 && !validateInput(inputUrl);
 
   return (
-    <div className="min-h-screen grid place-items-center bg-linear-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-gray-900 p-4 md:p-8">
-      <div className="w-full max-w-3xl">
-        {/* Screenshot-1 inspired input card */}
-        <Card className="shadow-xl" style={{ fontFamily: 'var(--font-inter)' }}>
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-3xl">🤗</span>
-              <CardTitle className="text-2xl">Hugging Face</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="space-y-2">
-              <Label>HUGGING FACE USERNAME</Label>
-              <div className="relative">
-                <div className="flex items-stretch">
-                  <span className="hidden sm:flex items-center px-3 text-sm text-muted-foreground bg-secondary/60 border border-input rounded-l-md">
-                    https://huggingface.co/
-                  </span>
-                  <Input
-                    type="text"
-                    value={inputUrl}
-                    onChange={(e) => setInputUrl(e.target.value)}
-                    placeholder="username or full URL"
-                    className="h-11 sm:rounded-l-none sm:border-l-0 pr-10"
-                    onKeyPress={(e) => e.key === 'Enter' && handleGenerate()}
-                    disabled={loading}
-                  />
+    <div className="min-h-screen bg-linear-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-gray-900">
+      {/* Input form - hidden when QR is shown */}
+      {!showQR && (
+        <div className="min-h-screen grid place-items-center p-6 md:p-10">
+          <div className="w-full max-w-2xl mx-auto">
+            {/* Input card */}
+            <Card className="shadow-xl">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-3xl">🤗</span>
+                  <div>
+                    <CardTitle className="text-2xl font-bold tracking-tight">Hugging Face</CardTitle>
+                    <CardDescription className="mt-1 text-muted-foreground">Generate a clean QR code for any Hugging Face profile or resource.</CardDescription>
+                  </div>
                 </div>
-                <CheckCircle2
-                  className={`absolute right-3 top-1/2 -translate-y-1/2 ${isValid ? 'text-emerald-500' : 'text-muted-foreground/30'}`}
-                />
-              </div>
-            </div>
+              </CardHeader>
+              <CardContent className="p-6 md:p-8 space-y-7">
+                <div className="space-y-3">
+                  <Label className="text-xs tracking-wider font-medium">HUGGING FACE USERNAME</Label>
+                  <div className="relative">
+                    <div className="flex items-stretch overflow-hidden rounded-md border">
+                      <span className="hidden sm:inline-flex items-center px-3 text-sm text-muted-foreground bg-secondary/40 select-none">
+                        https://huggingface.co/
+                      </span>
+                      <Input
+                        type="text"
+                        value={inputUrl}
+                        onChange={(e) => setInputUrl(e.target.value)}
+                        placeholder="username or full URL"
+                        className="h-11 border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        onKeyPress={(e) => e.key === 'Enter' && handleGenerate()}
+                        disabled={loading}
+                        aria-invalid={inputIsInvalid}
+                        aria-describedby="hf-input-help"
+                      />
+                    </div>
+                  </div>
+                  <p id="hf-input-help" className="text-xs text-muted-foreground">Paste a full URL or just the username, e.g. <span className="font-mono">reubencf</span>.</p>
+                </div>
 
-            <Button
-              onClick={handleGenerate}
-              disabled={!inputUrl || loading}
-              className="rounded-full px-6 bg-muted text-foreground hover:bg-muted/80 dark:bg-input/40"
+                <Button
+                  onClick={handleGenerate}
+                  disabled={!inputUrl || loading}
+                  size="lg"
+                  className="rounded-md w-full sm:w-auto"
+                >
+                  {loading ? 'Generating…' : 'Generate QR Code'}
+                </Button>
+
+                {error && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* Full screen QR preview - shown after successful generation */}
+      {showQR && profileData && (
+        <div
+          className="fixed inset-0 bg-linear-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-gray-900 z-50 p-4 md:p-6 overflow-y-auto"
+          style={{ background: `linear-gradient(135deg, ${gradients[gradientIndex][0]}, ${gradients[gradientIndex][1]})` }}
+        >
+          {/* Back button moved outside of the phone so it won't appear in exports */}
+          <div className="qr-topbar">
+            <button onClick={handleBack} aria-label="Back"><ChevronLeft size={18} /></button>
+          </div>
+          <div className="qr-preview mx-auto flex justify-center py-6">
+            <div
+              className="qr-phone-bg"
+              ref={phoneRef}
+              style={{ background: `linear-gradient(135deg, ${gradients[gradientIndex][0]}, ${gradients[gradientIndex][1]})` }}
+              onClick={handleCycleBackground}
             >
-              {loading ? 'Generating…' : 'Generate QR Code'}
-            </Button>
-
-            {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Result Section - Phone-like preview matching screenshot */}
-        {profileData && (
-          <div className="qr-preview flex justify-center">
-            <div className="qr-phone-bg">
-              <div className="qr-topbar">
-                <button aria-label="Back"><ChevronLeft size={18} /></button>
-                <button aria-label="Menu"><Menu size={18} /></button>
-              </div>
-
-              <div className="qr-card-v2" id="qr-card">
+              <div className="qr-card-v2" id="qr-card" ref={cardRef} onClick={(e) => e.stopPropagation()}>
                 <div className="qr-avatar-wrap">
                   <img
-                    src={profileData.originalAvatarUrl || profileData.avatarUrl}
+                    src={profileData.avatarUrl}
                     alt={profileData.fullName}
                     className="qr-avatar"
                     crossOrigin="anonymous"
@@ -207,42 +305,46 @@ const HuggingFaceQRGenerator = () => {
                       dotsColor="#000000"
                     />
                   </div>
-                  <p className="qr-caption">Share your QR code so others can follow you</p>
+                  <p className="qr-caption">{(() => {
+                    const t = profileData?.resourceType || profileData?.type;
+                    if (t === 'model') return 'Scan to open this model on Hugging Face';
+                    if (t === 'dataset') return 'Scan to open this dataset on Hugging Face';
+                    if (t === 'space') return 'Scan to open this Space on Hugging Face';
+                    if (profileData?.fullName) return `Scan to open ${profileData.fullName} on Hugging Face`;
+                    return 'Scan to open on Hugging Face';
+                  })()}</p>
                   <div className="qr-brand">
                     <img src="https://huggingface.co/front/assets/huggingface_logo.svg" alt="Hugging Face" />
                     <span>Hugging Face</span>
                   </div>
                 </div>
               </div>
-
-              <div className="qr-bg-help">Tap background to change color</div>
-
-              <div className="qr-share-sheet">
-                <div className="qr-download">
-                  <button onClick={() => handleDownload('card')} className="qr-circle">
-                    <Download size={18} />
-                  </button>
-                  <span>Download</span>
+            </div>
+            {/* Share sheet placed below the phone (not part of exported element) */}
+            <div className="qr-share-sheet" onClick={(e) => e.stopPropagation()}>
+              <div className="qr-download">
+                <button onClick={() => handleDownload('full')} className="qr-circle">
+                  <Download size={18} />
+                </button>
+                <span>Download</span>
+              </div>
+              <div className="qr-share-group">
+                <span className="qr-share-label">Share to</span>
+                <div className="qr-share-actions">
+                  <button className="qr-circle" onClick={() => handleShare('linkedin')} aria-label="Share on LinkedIn"><Linkedin size={18} /></button>
+                  <button className="qr-circle" onClick={() => handleShare('facebook')} aria-label="Share on Facebook"><Facebook size={18} /></button>
+                  <button className="qr-circle" onClick={() => handleShare('twitter')} aria-label="Share on X (Twitter)"><Twitter size={18} /></button>
                 </div>
-                <div className="qr-share-group">
-                  <span className="qr-share-label">Share to</span>
-                  <div className="qr-share-actions">
-                    <button className="qr-circle"><MessageCircle size={18} /></button>
-                    <button className="qr-circle"><Mail size={18} /></button>
-                    <button className="qr-circle"><MoreHorizontal size={18} /></button>
-                  </div>
-                  <div className="qr-share-texts">
-                    <span>SMS</span>
-                    <span>Email</span>
-                    <span>Other</span>
-                  </div>
+                <div className="qr-share-texts">
+                  <span>LinkedIn</span>
+                  <span>Facebook</span>
+                  <span>X</span>
                 </div>
-                <button className="qr-close" aria-label="Close">×</button>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
