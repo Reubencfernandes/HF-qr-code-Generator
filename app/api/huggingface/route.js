@@ -27,11 +27,13 @@ export async function POST(request) {
 
       // Extract the CDN avatar URL from the HTML
       // Look for pattern: https://cdn-avatars.huggingface.co/...
-      const avatarMatch = html.match(/https:\/\/cdn-avatars\.huggingface\.co\/[^"'\s]+\.(png|jpg|jpeg|webp)/);
+      // Make sure to stop at the first quote, space, or HTML entity
+      const avatarMatch = html.match(/https:\/\/cdn-avatars\.huggingface\.co\/[^"'\s&<>]+?\.(png|jpg|jpeg|webp)/);
 
       let avatarUrl = null;
       if (avatarMatch && avatarMatch[0]) {
-        avatarUrl = avatarMatch[0];
+        // Clean the URL - remove any HTML entities or extra characters
+        avatarUrl = avatarMatch[0].split('&')[0].split('"')[0].split("'")[0];
       }
 
       // If no CDN avatar found, try to find any avatar image

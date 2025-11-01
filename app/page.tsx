@@ -1,4 +1,4 @@
-import HuggingFaceQRGenerator from '../components/HuggingFaceQRGenerator.tsx';
+import HuggingFaceQRGenerator from '../components/HuggingFaceQRGenerator';
 
 export default function Home() {
   return <HuggingFaceQRGenerator />;

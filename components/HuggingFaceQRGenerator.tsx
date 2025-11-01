@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Download, ChevronLeft, Copy } from 'lucide-react';
+import { Download, ChevronLeft, Copy, Palette } from 'lucide-react';
 import { FaFacebook, FaLinkedin } from 'react-icons/fa';
 import { FaSquareXTwitter } from 'react-icons/fa6';
 
@@ -23,12 +23,29 @@ const HuggingFaceQRGenerator = () => {
   const [qrCodeInstance, setQrCodeInstance] = useState<any>(null);
   const [showQR, setShowQR] = useState(false);
   const [gradientIndex, setGradientIndex] = useState(0);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [customColor, setCustomColor] = useState<string | null>(null);
+  
   const gradients = [
-    ['#f1c40f', '#f39c12'],
-    ['#34d399', '#10b981'],
-    ['#60a5fa', '#6366f1'],
-    ['#fb7185', '#f472b6'],
-    ['#f59e0b', '#ef4444']
+    { name: 'Sunset Orange', colors: ['#f1c40f', '#f39c12'], type: 'gradient' },
+    { name: 'Ocean Blue', colors: ['#60a5fa', '#3b82f6'], type: 'gradient' },
+    { name: 'Emerald Green', colors: ['#34d399', '#10b981'], type: 'gradient' },
+    { name: 'Purple Dream', colors: ['#a78bfa', '#7c3aed'], type: 'gradient' },
+    { name: 'Rose Pink', colors: ['#fb7185', '#f472b6'], type: 'gradient' },
+    { name: 'Amber Gold', colors: ['#fbbf24', '#f59e0b'], type: 'gradient' },
+    { name: 'Teal Breeze', colors: ['#2dd4bf', '#14b8a6'], type: 'gradient' },
+    { name: 'Indigo Night', colors: ['#6366f1', '#4f46e5'], type: 'gradient' },
+  ];
+  
+  const solidColors = [
+    { name: 'Orange', color: '#f59e0b' },
+    { name: 'Blue', color: '#3b82f6' },
+    { name: 'Green', color: '#10b981' },
+    { name: 'Purple', color: '#8b5cf6' },
+    { name: 'Pink', color: '#ec4899' },
+    { name: 'Red', color: '#ef4444' },
+    { name: 'Yellow', color: '#eab308' },
+    { name: 'Gray', color: '#6b7280' },
   ];
 
   const handleGenerate = async () => {
@@ -84,6 +101,26 @@ const HuggingFaceQRGenerator = () => {
 
   const handleCycleBackground = () => {
     setGradientIndex((prev) => (prev + 1) % gradients.length);
+    setCustomColor(null);
+  };
+  
+  const handleSelectGradient = (index: number) => {
+    setGradientIndex(index);
+    setCustomColor(null);
+    setShowColorPicker(false);
+  };
+  
+  const handleSelectSolidColor = (color: string) => {
+    setCustomColor(color);
+    setShowColorPicker(false);
+  };
+  
+  const getBackgroundStyle = () => {
+    if (customColor) {
+      return { background: customColor };
+    }
+    const gradient = gradients[gradientIndex];
+    return { background: `linear-gradient(135deg, ${gradient.colors[0]}, ${gradient.colors[1]})` };
   };
 
   const phoneRef = useRef<HTMLDivElement | null>(null);
@@ -246,22 +283,22 @@ const HuggingFaceQRGenerator = () => {
     <div className="min-h-screen bg-linear-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-gray-900">
       {/* Input form - hidden when QR is shown */}
       {!showQR && (
-        <div className="min-h-screen grid place-items-center p-6 md:p-10 bg-white/80">
+        <div className="min-h-screen grid place-items-center p-4 sm:p-6 md:p-10 bg-white/80">
           <div className="w-full max-w-2xl mx-auto">
             {/* Input card */}
-            <Card className="shadow-xl" style={{ padding: 15, fontFamily: 'var(--font-inter)', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.06)' }}>
-              <CardHeader className="pb-4">
+            <Card className="shadow-xl" style={{ padding: '1rem', fontFamily: 'var(--font-inter)', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.06)' }}>
+              <CardHeader className="pb-4 px-4 sm:px-6">
                 <div className="flex flex-col gap-3">
-                  <img src="/logo.svg" alt="Hugging Face" className="h-7 w-auto" />
-                  <CardDescription className="text-muted-foreground" style={{ fontFamily: 'var(--font-inter)' }}>Generate a clean QR code for any Hugging Face profile or resource.</CardDescription>
+                  <img src="/logo.svg" alt="Hugging Face" className="h-6 sm:h-7 w-auto" />
+                  <CardDescription className="text-muted-foreground text-sm sm:text-base" style={{ fontFamily: 'var(--font-inter)' }}>Generate a clean QR code for any Hugging Face profile or resource.</CardDescription>
                 </div>
               </CardHeader>
-              <CardContent className="p-6 md:p-8 space-y-7">
+              <CardContent className="p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-7">
                 <div className="space-y-3">
                   <Label className="text-xs tracking-wider font-medium" style={{ fontFamily: 'var(--font-inter)' }}>HUGGING FACE USERNAME</Label>
                   <div className="relative">
-                    <div className="flex items-stretch overflow-hidden rounded-md border">
-                      <span className="hidden sm:inline-flex items-center text-sm text-muted-foreground select-none" style={{ paddingLeft: '8px', paddingRight: '5px', backgroundColor: '#f5f5f5', fontFamily: 'var(--font-inter)' }}>
+                    <div className="flex flex-col sm:flex-row items-stretch overflow-hidden rounded-md border">
+                      <span className="hidden sm:inline-flex items-center text-xs sm:text-sm text-muted-foreground select-none" style={{ paddingLeft: '8px', paddingRight: '5px', backgroundColor: '#f5f5f5', fontFamily: 'var(--font-inter)' }}>
                         https://huggingface.co/
                       </span>
                       <Input
@@ -269,8 +306,8 @@ const HuggingFaceQRGenerator = () => {
                         value={inputUrl}
                         onChange={(e) => setInputUrl(e.target.value)}
                         placeholder="Reubencf"
-                        className="h-12 border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                        style={{ paddingLeft: '3px', paddingRight: '12px', fontFamily: 'var(--font-inter)' }}
+                        className="h-10 sm:h-12 border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm sm:text-base"
+                        style={{ paddingLeft: '12px', paddingRight: '12px', fontFamily: 'var(--font-inter)' }}
                         onKeyPress={(e) => e.key === 'Enter' && handleGenerate()}
                         disabled={loading}
                         aria-invalid={inputIsInvalid}
@@ -279,15 +316,15 @@ const HuggingFaceQRGenerator = () => {
                       />
                     </div>
                   </div>
-                  <p id="hf-input-help" className="text-xs text-muted-foreground" style={{ paddingTop: '5px', paddingBottom: '4px', fontFamily: 'var(--font-inter)' }}>Paste a full URL or just the username, e.g. <span className="font-mono">reubencf</span>.</p>
+                  <p id="hf-input-help" className="text-xs text-muted-foreground" style={{ paddingTop: '5px', paddingBottom: '4px', fontFamily: 'var(--font-inter)' }}>Paste a full URL or just the username, e.g. <span className="font-mono text-xs">reubencf</span>.</p>
                 </div>
 
-                <div className="pt-2 flex justify-end">
+                <div className="pt-2 flex justify-center sm:justify-end">
                   <Button
                     onClick={handleGenerate}
                     disabled={!inputUrl || loading}
-                    className="rounded-md h-auto bg-neutral-900 text-white hover:bg-neutral-800 disabled:bg-neutral-700 disabled:opacity-100"
-                    style={{ padding: '12px' }}
+                    className="rounded-md h-auto bg-neutral-900 text-white hover:bg-neutral-800 disabled:bg-neutral-700 disabled:opacity-100 w-full sm:w-auto text-sm sm:text-base"
+                    style={{ padding: '10px 16px' }}
                     aria-label="Generate QR Code"
                   >
                     {loading ? 'Generating…' : 'Generate QR Code'}
@@ -309,7 +346,7 @@ const HuggingFaceQRGenerator = () => {
       {showQR && profileData && (
         <div
           className="fixed inset-0 bg-linear-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-gray-900 z-50 p-4 md:p-6 overflow-y-auto"
-          style={{ background: `linear-gradient(135deg, ${gradients[gradientIndex][0]}, ${gradients[gradientIndex][1]})` }}
+          style={getBackgroundStyle()}
         >
           {/* Back button moved outside of the phone so it won't appear in exports */}
           <div className="qr-topbar">
@@ -319,7 +356,7 @@ const HuggingFaceQRGenerator = () => {
             <div
               className="qr-phone-bg"
               ref={phoneRef}
-              style={{ background: `linear-gradient(135deg, ${gradients[gradientIndex][0]}, ${gradients[gradientIndex][1]})` }}
+              style={getBackgroundStyle()}
               onClick={handleCycleBackground}
             >
               <div className="qr-card-v2" id="qr-card" ref={cardRef} onClick={(e) => e.stopPropagation()}>
@@ -375,6 +412,12 @@ const HuggingFaceQRGenerator = () => {
                     </button>
                     <span className="qr-action-text">Copy</span>
                   </div>
+                  <div className="qr-download-item">
+                    <button onClick={() => setShowColorPicker(!showColorPicker)} className="qr-circle" aria-label="Change Color">
+                      <Palette size={18} />
+                    </button>
+                    <span className="qr-action-text">Color</span>
+                  </div>
                 </div>
               </div>
               <div className="qr-share-group">
@@ -386,6 +429,46 @@ const HuggingFaceQRGenerator = () => {
                 </div>
               </div>
             </div>
+            
+            {/* Color Picker Popup */}
+            {showColorPicker && (
+              <div className="qr-color-picker" onClick={(e) => e.stopPropagation()}>
+                <div className="qr-color-picker-header">
+                  <h3>Choose Background</h3>
+                  <button onClick={() => setShowColorPicker(false)} className="qr-color-close">×</button>
+                </div>
+                
+                <div className="qr-color-section">
+                  <h4>Gradients</h4>
+                  <div className="qr-color-grid">
+                    {gradients.map((gradient, index) => (
+                      <button
+                        key={index}
+                        className={`qr-color-swatch ${gradientIndex === index && !customColor ? 'active' : ''}`}
+                        style={{ background: `linear-gradient(135deg, ${gradient.colors[0]}, ${gradient.colors[1]})` }}
+                        onClick={() => handleSelectGradient(index)}
+                        title={gradient.name}
+                      />
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="qr-color-section">
+                  <h4>Solid Colors</h4>
+                  <div className="qr-color-grid">
+                    {solidColors.map((color, index) => (
+                      <button
+                        key={index}
+                        className={`qr-color-swatch ${customColor === color.color ? 'active' : ''}`}
+                        style={{ background: color.color }}
+                        onClick={() => handleSelectSolidColor(color.color)}
+                        title={color.name}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
