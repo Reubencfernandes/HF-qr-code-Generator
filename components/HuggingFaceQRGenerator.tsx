@@ -24,17 +24,17 @@ const HuggingFaceQRGenerator = () => {
   const [showQR, setShowQR] = useState(false);
   const [gradientIndex, setGradientIndex] = useState(0);
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const [customColor, setCustomColor] = useState<string | null>(null);
+  const [customColor, setCustomColor] = useState<string | null>('#f59e0b');
   
   const gradients = [
-    { name: 'Sunset Orange', colors: ['#f1c40f', '#f39c12'], type: 'gradient' },
-    { name: 'Ocean Blue', colors: ['#60a5fa', '#3b82f6'], type: 'gradient' },
-    { name: 'Emerald Green', colors: ['#34d399', '#10b981'], type: 'gradient' },
-    { name: 'Purple Dream', colors: ['#a78bfa', '#7c3aed'], type: 'gradient' },
-    { name: 'Rose Pink', colors: ['#fb7185', '#f472b6'], type: 'gradient' },
-    { name: 'Amber Gold', colors: ['#fbbf24', '#f59e0b'], type: 'gradient' },
-    { name: 'Teal Breeze', colors: ['#2dd4bf', '#14b8a6'], type: 'gradient' },
-    { name: 'Indigo Night', colors: ['#6366f1', '#4f46e5'], type: 'gradient' },
+    { name: 'Sunset', colors: ['#f59e0b', '#f43f5e'], type: 'gradient' },           // orange → rose
+    { name: 'Aqua Blue', colors: ['#06b6d4', '#3b82f6'], type: 'gradient' },        // cyan → blue
+    { name: 'Purple Orange', colors: ['#8b5cf6', '#f59e0b'], type: 'gradient' },    // purple → orange
+    { name: 'Emerald Gold', colors: ['#10b981', '#fbbf24'], type: 'gradient' },     // green → amber
+    { name: 'Indigo Pink', colors: ['#4f46e5', '#ec4899'], type: 'gradient' },      // indigo → pink
+    { name: 'Teal Violet', colors: ['#14b8a6', '#7c3aed'], type: 'gradient' },      // teal → violet
+    { name: 'Sky Purple', colors: ['#38bdf8', '#a78bfa'], type: 'gradient' },       // sky → purple
+    { name: 'Slate Blue', colors: ['#64748b', '#3b82f6'], type: 'gradient' },       // slate → blue
   ];
   
   const solidColors = [
@@ -140,7 +140,7 @@ const HuggingFaceQRGenerator = () => {
           pixelRatio: 2,
           width: Math.ceil(rect.width),
           height: Math.ceil(rect.height),
-          style: { margin: '0' }
+          style: { margin: '0' },
         });
         const response = await fetch(dataUrl);
         const blob = await response.blob();
@@ -234,7 +234,7 @@ const HuggingFaceQRGenerator = () => {
         pixelRatio: 2,
         width: Math.ceil(rect.width),
         height: Math.ceil(rect.height),
-        style: { margin: '0' }
+        style: { margin: '0' },
       });
 
       // Convert data URL to blob
@@ -362,7 +362,7 @@ const HuggingFaceQRGenerator = () => {
               <div className="qr-card-v2" id="qr-card" ref={cardRef} onClick={(e) => e.stopPropagation()}>
                 <div className="qr-avatar-wrap">
                   <img
-                    src={profileData.avatarUrl}
+                    src={profileData.originalAvatarUrl || profileData.avatarUrl}
                     alt={profileData.fullName}
                     className="qr-avatar"
                     crossOrigin="anonymous"
