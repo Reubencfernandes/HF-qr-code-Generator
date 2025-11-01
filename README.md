@@ -2,7 +2,7 @@
 title: Hugging Face QR Code Generator
 emoji: 🤗
 colorFrom: yellow
-colorTo: orange
+colorTo: red
 sdk: docker
 pinned: false
 license: mit
