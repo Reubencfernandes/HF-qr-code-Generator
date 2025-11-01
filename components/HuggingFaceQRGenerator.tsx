@@ -11,7 +11,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Download, Twitter, Facebook, Linkedin, ChevronLeft } from 'lucide-react';
+import { Download, ChevronLeft, Copy } from 'lucide-react';
+import { FaFacebook, FaLinkedin } from 'react-icons/fa';
+import { FaSquareXTwitter } from 'react-icons/fa6';
 
 const HuggingFaceQRGenerator = () => {
   const [inputUrl, setInputUrl] = useState('');
@@ -182,6 +184,40 @@ const HuggingFaceQRGenerator = () => {
     }
   };
 
+  const handleCopyImage = async () => {
+    if (!profileData) return;
+
+    try {
+      const phoneElement = phoneRef.current;
+      if (!phoneElement) return;
+
+      const rect = phoneElement.getBoundingClientRect();
+      const dataUrl = await htmlToImage.toPng(phoneElement, {
+        quality: 1.0,
+        pixelRatio: 2,
+        width: Math.ceil(rect.width),
+        height: Math.ceil(rect.height),
+        style: { margin: '0' }
+      });
+
+      // Convert data URL to blob
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+
+      // Copy to clipboard
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'image/png': blob
+        })
+      ]);
+
+      alert('Image copied to clipboard!');
+    } catch (err) {
+      console.error('Copy error:', err);
+      alert('Failed to copy image. Your browser may not support this feature.');
+    }
+  };
+
   const getResourceIcon = (type: string) => {
     switch(type) {
       case 'model': return '🤖';
@@ -210,51 +246,53 @@ const HuggingFaceQRGenerator = () => {
     <div className="min-h-screen bg-linear-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-gray-900">
       {/* Input form - hidden when QR is shown */}
       {!showQR && (
-        <div className="min-h-screen grid place-items-center p-6 md:p-10">
+        <div className="min-h-screen grid place-items-center p-6 md:p-10 bg-white/80">
           <div className="w-full max-w-2xl mx-auto">
             {/* Input card */}
-            <Card className="shadow-xl">
+            <Card className="shadow-xl" style={{ padding: 15, fontFamily: 'var(--font-inter)', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.06)' }}>
               <CardHeader className="pb-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-3xl">🤗</span>
-                  <div>
-                    <CardTitle className="text-2xl font-bold tracking-tight">Hugging Face</CardTitle>
-                    <CardDescription className="mt-1 text-muted-foreground">Generate a clean QR code for any Hugging Face profile or resource.</CardDescription>
-                  </div>
+                <div className="flex flex-col gap-3">
+                  <img src="/logo.svg" alt="Hugging Face" className="h-7 w-auto" />
+                  <CardDescription className="text-muted-foreground" style={{ fontFamily: 'var(--font-inter)' }}>Generate a clean QR code for any Hugging Face profile or resource.</CardDescription>
                 </div>
               </CardHeader>
               <CardContent className="p-6 md:p-8 space-y-7">
                 <div className="space-y-3">
-                  <Label className="text-xs tracking-wider font-medium">HUGGING FACE USERNAME</Label>
+                  <Label className="text-xs tracking-wider font-medium" style={{ fontFamily: 'var(--font-inter)' }}>HUGGING FACE USERNAME</Label>
                   <div className="relative">
                     <div className="flex items-stretch overflow-hidden rounded-md border">
-                      <span className="hidden sm:inline-flex items-center px-3 text-sm text-muted-foreground bg-secondary/40 select-none">
+                      <span className="hidden sm:inline-flex items-center text-sm text-muted-foreground select-none" style={{ paddingLeft: '8px', paddingRight: '5px', backgroundColor: '#f5f5f5', fontFamily: 'var(--font-inter)' }}>
                         https://huggingface.co/
                       </span>
                       <Input
                         type="text"
                         value={inputUrl}
                         onChange={(e) => setInputUrl(e.target.value)}
-                        placeholder="username or full URL"
-                        className="h-11 border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        placeholder="Reubencf"
+                        className="h-12 border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        style={{ paddingLeft: '3px', paddingRight: '12px', fontFamily: 'var(--font-inter)' }}
                         onKeyPress={(e) => e.key === 'Enter' && handleGenerate()}
                         disabled={loading}
                         aria-invalid={inputIsInvalid}
                         aria-describedby="hf-input-help"
+                        autoFocus
                       />
                     </div>
                   </div>
-                  <p id="hf-input-help" className="text-xs text-muted-foreground">Paste a full URL or just the username, e.g. <span className="font-mono">reubencf</span>.</p>
+                  <p id="hf-input-help" className="text-xs text-muted-foreground" style={{ paddingTop: '5px', paddingBottom: '4px', fontFamily: 'var(--font-inter)' }}>Paste a full URL or just the username, e.g. <span className="font-mono">reubencf</span>.</p>
                 </div>
 
-                <Button
-                  onClick={handleGenerate}
-                  disabled={!inputUrl || loading}
-                  size="lg"
-                  className="rounded-md w-full sm:w-auto"
-                >
-                  {loading ? 'Generating…' : 'Generate QR Code'}
-                </Button>
+                <div className="pt-2 flex justify-end">
+                  <Button
+                    onClick={handleGenerate}
+                    disabled={!inputUrl || loading}
+                    className="rounded-md h-auto bg-neutral-900 text-white hover:bg-neutral-800 disabled:bg-neutral-700 disabled:opacity-100"
+                    style={{ padding: '12px' }}
+                    aria-label="Generate QR Code"
+                  >
+                    {loading ? 'Generating…' : 'Generate QR Code'}
+                  </Button>
+                </div>
 
                 {error && (
                   <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg text-sm">
@@ -322,23 +360,29 @@ const HuggingFaceQRGenerator = () => {
             </div>
             {/* Share sheet placed below the phone (not part of exported element) */}
             <div className="qr-share-sheet" onClick={(e) => e.stopPropagation()}>
-              <div className="qr-download">
-                <button onClick={() => handleDownload('full')} className="qr-circle">
-                  <Download size={18} />
-                </button>
-                <span>Download</span>
+              <div className="qr-download-group">
+                <span className="qr-share-label">Actions</span>
+                <div className="qr-download-actions">
+                  <div className="qr-download-item">
+                    <button onClick={() => handleDownload('full')} className="qr-circle" aria-label="Download">
+                      <Download size={18} />
+                    </button>
+                    <span className="qr-action-text">Download</span>
+                  </div>
+                  <div className="qr-download-item">
+                    <button onClick={handleCopyImage} className="qr-circle" aria-label="Copy">
+                      <Copy size={18} />
+                    </button>
+                    <span className="qr-action-text">Copy</span>
+                  </div>
+                </div>
               </div>
               <div className="qr-share-group">
                 <span className="qr-share-label">Share to</span>
                 <div className="qr-share-actions">
-                  <button className="qr-circle" onClick={() => handleShare('linkedin')} aria-label="Share on LinkedIn"><Linkedin size={18} /></button>
-                  <button className="qr-circle" onClick={() => handleShare('facebook')} aria-label="Share on Facebook"><Facebook size={18} /></button>
-                  <button className="qr-circle" onClick={() => handleShare('twitter')} aria-label="Share on X (Twitter)"><Twitter size={18} /></button>
-                </div>
-                <div className="qr-share-texts">
-                  <span>LinkedIn</span>
-                  <span>Facebook</span>
-                  <span>X</span>
+                  <button className="qr-circle" onClick={() => handleShare('linkedin')} aria-label="Share on LinkedIn"><FaLinkedin size={20} /></button>
+                  <button className="qr-circle" onClick={() => handleShare('facebook')} aria-label="Share on Facebook"><FaFacebook size={20} /></button>
+                  <button className="qr-circle" onClick={() => handleShare('twitter')} aria-label="Share on X (Twitter)"><FaSquareXTwitter size={20} /></button>
                 </div>
               </div>
             </div>
