@@ -876,7 +876,7 @@
   animation: qrPanelIn 0.42s cubic-bezier(0.22, 1, 0.36, 1);
   /* Firefox */
   scrollbar-width: thin;
-  scrollbar-color: rgba(118, 75, 162, 0.45) transparent;
+  scrollbar-color: #d1d5db transparent;
 }
 
 /* ===== Themed scrollbar (WebKit / Chromium) ===== */
@@ -891,7 +891,7 @@
 
 .qr-customize-panel::-webkit-scrollbar-thumb {
   border-radius: 9999px;
-  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  background: #d1d5db;
   /* Inset the thumb so it reads as a slim pill with breathing room */
   border: 3px solid transparent;
   background-clip: content-box;
@@ -899,7 +899,7 @@
 }
 
 .qr-customize-panel::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #5566d8 0%, #653f91 100%);
+  background: #9ca3af;
   background-clip: content-box;
 }
 
@@ -1489,4 +1489,108 @@
 
 @media (prefers-reduced-motion: reduce) {
   .qr-toast { animation: none; }
+}
+
+/* ===== Adaptive card text ===== */
+/* Transparent card: the caption/brand sit straight on the page background.
+   Default to dark text with a light glow; .on-dark (set from the sampled
+   background luminance) flips to light text with a dark shadow. */
+.qr-card-v2.transparent .qr-caption {
+  color: #374151;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55);
+}
+.qr-card-v2.transparent .qr-brand {
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55);
+}
+.qr-card-v2.transparent.on-dark .qr-caption {
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+}
+.qr-card-v2.transparent.on-dark .qr-brand {
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+}
+
+/* ===== Disabled color rows (image QR active) ===== */
+.qr-color-row.disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* ===== Motion polish ===== */
+
+/* Phone mock rises in when the QR is generated */
+.qr-phone-bg {
+  animation: qrPhoneIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes qrPhoneIn {
+  0% { opacity: 0; transform: translateY(26px) scale(0.96); }
+  70% { opacity: 1; transform: translateY(-4px) scale(1.004); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Share sheet follows the phone with a slight stagger */
+.qr-share-sheet {
+  animation: slideUp 0.45s 0.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Caption/brand recolor smoothly when the background changes */
+.qr-caption,
+.qr-brand {
+  transition: color 0.25s ease, text-shadow 0.25s ease;
+}
+
+/* Tactile feedback on the action buttons */
+.qr-circle {
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background 0.18s ease, box-shadow 0.18s ease;
+}
+.qr-circle:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12); }
+.qr-circle:active { transform: translateY(0) scale(0.92); }
+
+.qr-shape-option,
+.qr-logo-option,
+.qr-upload-btn,
+.qr-tab {
+  transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+}
+.qr-shape-option:active,
+.qr-logo-option:active,
+.qr-upload-btn:active,
+.qr-tab:active { transform: scale(0.96); }
+
+.qr-mini-swatch {
+  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.16s ease;
+}
+.qr-mini-swatch:active { transform: scale(0.9); }
+
+.qr-color-swatch {
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.qr-color-swatch:active { transform: scale(0.94); }
+
+/* Crop editor and preview ease in instead of popping */
+.qr-crop-view,
+.qr-bg-preview {
+  animation: qrSectionIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qr-phone-bg,
+  .qr-share-sheet,
+  .qr-crop-view,
+  .qr-bg-preview {
+    animation: none;
+  }
+  .qr-circle,
+  .qr-shape-option,
+  .qr-logo-option,
+  .qr-upload-btn,
+  .qr-tab,
+  .qr-mini-swatch,
+  .qr-color-swatch,
+  .qr-caption,
+  .qr-brand {
+    transition: none;
+  }
 }

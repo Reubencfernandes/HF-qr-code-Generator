@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 /* ---------- color math ---------- */
 
@@ -58,9 +59,10 @@ function hsvToHex(h: number, s: number, v: number): string {
 interface ColorPickerProps {
   value: string;
   onChange: (hex: string) => void;
+  disabled?: boolean;
 }
 
-const ColorPicker: React.FC<ColorPickerProps> = ({ value, onChange }) => {
+const ColorPicker: React.FC<ColorPickerProps> = ({ value, onChange, disabled = false }) => {
   const safeValue = value === 'transparent' ? '#ffffff' : value;
   const [open, setOpen] = useState(false);
   const [hsv, setHsv] = useState(() => hexToHsv(safeValue));
@@ -72,21 +74,34 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, onChange }) => {
   const svRef = useRef<HTMLDivElement>(null);
   const hueRef = useRef<HTMLDivElement>(null);
   const dragTarget = useRef<'sv' | 'hue' | null>(null);
+  // Mirror of `hsv` so pointer handlers can read the latest value without
+  // reaching into a state updater (calling onChange there runs during render).
+  const hsvRef = useRef(hsv);
+
+  const setHsvBoth = useCallback((next: { h: number; s: number; v: number }) => {
+    hsvRef.current = next;
+    setHsv(next);
+  }, []);
+
+  useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
 
   // Keep internal state synced when the value changes from outside (presets).
   useEffect(() => {
     if (open) return; // don't fight the user mid-edit
-    setHsv(hexToHsv(safeValue));
+    setHsvBoth(hexToHsv(safeValue));
     setHexText(normalizeHex(safeValue) ?? '#ffffff');
-  }, [safeValue, open]);
+  }, [safeValue, open, setHsvBoth]);
 
   const emit = useCallback(
     (next: { h: number; s: number; v: number }) => {
+      setHsvBoth(next);
       const hex = hsvToHex(next.h, next.s, next.v);
       setHexText(hex);
       onChange(hex);
     },
-    [onChange]
+    [onChange, setHsvBoth]
   );
 
   const updateFromPointer = useCallback(
@@ -95,19 +110,11 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, onChange }) => {
         const r = svRef.current.getBoundingClientRect();
         const s = clamp((e.clientX - r.left) / r.width, 0, 1);
         const v = clamp(1 - (e.clientY - r.top) / r.height, 0, 1);
-        setHsv((prev) => {
-          const next = { h: prev.h, s, v };
-          emit(next);
-          return next;
-        });
+        emit({ h: hsvRef.current.h, s, v });
       } else if (dragTarget.current === 'hue' && hueRef.current) {
         const r = hueRef.current.getBoundingClientRect();
         const h = clamp((e.clientX - r.left) / r.width, 0, 1) * 360;
-        setHsv((prev) => {
-          const next = { h, s: prev.s, v: prev.v };
-          emit(next);
-          return next;
-        });
+        emit({ h, s: hsvRef.current.s, v: hsvRef.current.v });
       }
     },
     [emit]
@@ -178,7 +185,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, onChange }) => {
   const commitHex = () => {
     const norm = normalizeHex(hexText);
     if (norm) {
-      setHsv(hexToHsv(norm));
+      setHsvBoth(hexToHsv(norm));
       onChange(norm);
       setHexText(norm);
     } else {
@@ -197,12 +204,16 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, onChange }) => {
         className="qr-color-input-wrap"
         title="Custom color"
         aria-label="Open custom color picker"
+        disabled={disabled}
         onClick={() => setOpen((o) => !o)}
       >
         <span className="qr-color-input-chip" style={{ background: current }} />
       </button>
 
-      {open && pos && (
+      {/* Portal to <body>: the docked panel has a CSS transform, which would
+          otherwise become the containing block for this fixed popover and
+          push it off-screen. */}
+      {open && pos && createPortal(
         <div
           ref={popRef}
           className="qr-cp-pop"
@@ -254,7 +265,8 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, onChange }) => {
               }}
             />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

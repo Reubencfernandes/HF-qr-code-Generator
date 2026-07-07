@@ -9,7 +9,7 @@ interface HalftoneQRProps {
   imageDataUrl: string;
   size?: number;
   /**
-   * How much of the photo shows through the modules (0.3–0.6).
+   * How much of the photo shows through the modules (0 to 1).
    * Lower = stronger black/white contrast, higher = more visible image.
    */
   imageVisibility?: number;
@@ -165,10 +165,11 @@ const HalftoneQR: React.FC<HalftoneQRProps> = ({
       const area = n * px;
       const srcSide = Math.min(img.width, img.height);
 
-      const v = Math.min(0.8, Math.max(0.3, imageVisibility));
-      // Linear in v so 30–60% is unchanged and the curve simply extends to 80%.
-      const dataDarkAlpha = 0.72 - (v - 0.3); // 0.72 → 0.42 (60%) → 0.22 (80%)
-      const funcDarkAlpha = 0.78 - 0.6 * (v - 0.3); // finders/timing stay darker
+      const v = Math.min(1, Math.max(0, imageVisibility));
+      // Same linear curve as before, now spanning the full 0 to 100% range:
+      // at 0% the modules are solid black, at 100% the photo is nearly raw.
+      const dataDarkAlpha = Math.min(1, Math.max(0, 0.72 - (v - 0.3)));
+      const funcDarkAlpha = Math.min(1, Math.max(0, 0.78 - 0.6 * (v - 0.3))); // finders/timing stay darker
 
       // Draw the photo through a clip path, then darken it so scanners
       // still read those areas as dark modules.

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import type { DotType, CornerSquareType, CornerDotType } from 'qr-code-styling';
 import type { DetectedLink } from '../lib/platforms';
 import { checkQrContrast, MIN_QR_CONTRAST } from '../lib/contrast';
@@ -19,6 +19,11 @@ export interface QrStyle {
   logoMode: LogoMode;
   customLogoDataUrl: string | null;
   bgImageDataUrl: string | null;
+  /** The uploaded photo before cropping, so re-cropping starts from it. */
+  bgImageSrc: string | null;
+  bgCropZoom: number;
+  /** Pan offset normalized to the crop viewport side. */
+  bgCropOffset: { x: number; y: number };
   imageVisibility: number;
 }
 
@@ -33,6 +38,9 @@ export const DEFAULT_QR_STYLE: QrStyle = {
   logoMode: 'auto',
   customLogoDataUrl: null,
   bgImageDataUrl: null,
+  bgImageSrc: null,
+  bgCropZoom: 1,
+  bgCropOffset: { x: 0, y: 0 },
   imageVisibility: 0.45,
 };
 
@@ -222,6 +230,7 @@ const CustomizePanel: React.FC<CustomizePanelProps> = ({
   const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
   const cropDimsRef = useRef({ w: 0, h: 0 });
   const cropViewRef = useRef<HTMLDivElement>(null);
+  const pendingOffsetRef = useRef({ x: 0, y: 0 });
   const dragRef = useRef<{ sx: number; sy: number; ox: number; oy: number } | null>(null);
 
   // Keep the photo covering the frame — no empty gaps at the edges.
@@ -237,12 +246,24 @@ const CustomizePanel: React.FC<CustomizePanelProps> = ({
     };
   };
 
-  const openCrop = (src: string) => {
+  const openCrop = (src: string, zoom = 1, normOffset = { x: 0, y: 0 }) => {
     cropDimsRef.current = { w: 0, h: 0 };
-    setCropZoom(1);
+    setCropZoom(zoom);
+    pendingOffsetRef.current = normOffset;
     setCropOffset({ x: 0, y: 0 });
     setCropSrc(src);
   };
+
+  // Restore the saved pan once the crop viewport exists; offsets are stored
+  // normalized to the viewport side so they survive layout size changes.
+  useLayoutEffect(() => {
+    if (!cropSrc) return;
+    const view = cropViewRef.current?.clientWidth ?? 240;
+    setCropOffset({
+      x: pendingOffsetRef.current.x * view,
+      y: pendingOffsetRef.current.y * view,
+    });
+  }, [cropSrc]);
 
   const handleCropZoom = (zoom: number) => {
     const view = cropViewRef.current?.clientWidth ?? 240;
@@ -251,7 +272,11 @@ const CustomizePanel: React.FC<CustomizePanelProps> = ({
   };
 
   const handleCropPointerDown = (e: React.PointerEvent) => {
-    e.currentTarget.setPointerCapture?.(e.pointerId);
+    try {
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+    } catch {
+      // Capture is best-effort; dragging still works without it.
+    }
     dragRef.current = { sx: e.clientX, sy: e.clientY, ox: cropOffset.x, oy: cropOffset.y };
   };
 
@@ -272,7 +297,12 @@ const CustomizePanel: React.FC<CustomizePanelProps> = ({
     const view = cropViewRef.current?.clientWidth ?? 240;
     try {
       const out = await renderCrop(cropSrc, cropZoom, cropOffset, view, CROP_OUT);
-      onStyleChange({ bgImageDataUrl: out });
+      onStyleChange({
+        bgImageDataUrl: out,
+        bgImageSrc: cropSrc,
+        bgCropZoom: cropZoom,
+        bgCropOffset: { x: cropOffset.x / view, y: cropOffset.y / view },
+      });
     } catch {
       alert('Could not process that image.');
     }
@@ -280,6 +310,7 @@ const CustomizePanel: React.FC<CustomizePanelProps> = ({
   };
 
   const contrast = checkQrContrast(qrStyle.dotsColor, qrStyle.qrBackgroundColor);
+  const imageQrActive = Boolean(qrStyle.bgImageDataUrl);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -314,9 +345,10 @@ const CustomizePanel: React.FC<CustomizePanelProps> = ({
     label: string,
     value: string,
     presets: string[],
-    apply: (color: string) => void
+    apply: (color: string) => void,
+    disabled = false
   ) => (
-    <div className="qr-color-row">
+    <div className={`qr-color-row${disabled ? ' disabled' : ''}`}>
       <span className="qr-color-row-label">{label}</span>
       <div className="qr-swatch-row">
         {presets.map((color) => (
@@ -326,9 +358,10 @@ const CustomizePanel: React.FC<CustomizePanelProps> = ({
             style={{ background: color }}
             onClick={() => apply(color)}
             title={color}
+            disabled={disabled}
           />
         ))}
-        <ColorPicker value={value} onChange={apply} />
+        <ColorPicker value={value} onChange={apply} disabled={disabled} />
       </div>
     </div>
   );
@@ -384,18 +417,25 @@ const CustomizePanel: React.FC<CustomizePanelProps> = ({
           <div className="qr-color-section">
             <h4>QR Code</h4>
             {colorRow('Dots', qrStyle.dotsColor, DARK_PRESETS, (c) =>
-              onStyleChange({ dotsColor: c })
+              onStyleChange({ dotsColor: c }), imageQrActive
             )}
             {colorRow('Corners', qrStyle.cornersSquareColor, DARK_PRESETS, (c) =>
-              onStyleChange({ cornersSquareColor: c })
+              onStyleChange({ cornersSquareColor: c }), imageQrActive
             )}
             {colorRow('Corner dots', qrStyle.cornersDotColor, DARK_PRESETS, (c) =>
-              onStyleChange({ cornersDotColor: c })
+              onStyleChange({ cornersDotColor: c }), imageQrActive
             )}
             {!qrStyle.bgImageDataUrl &&
               colorRow('Background', qrStyle.qrBackgroundColor, LIGHT_PRESETS, (c) =>
                 onStyleChange({ qrBackgroundColor: c })
               )}
+            {imageQrActive && (
+              <p className="qr-panel-note">
+                Dot and corner colors are disabled while an image QR is active.
+                The photo shows through the dark modules, so they stay black to
+                keep the code scannable.
+              </p>
+            )}
           </div>
 
           {!qrStyle.bgImageDataUrl &&
@@ -403,7 +443,7 @@ const CustomizePanel: React.FC<CustomizePanelProps> = ({
               <div className="qr-contrast-warning">
                 {contrast.inverted
                   ? 'Light dots on a dark background fail in many scanner apps.'
-                  : `Low contrast (${contrast.ratio.toFixed(1)}:1, needs ${MIN_QR_CONTRAST}:1) — this QR may not scan reliably.`}
+                  : `Low contrast (${contrast.ratio.toFixed(1)}:1, needs ${MIN_QR_CONTRAST}:1). This QR may not scan reliably.`}
                 <button
                   className="qr-contrast-reset"
                   onClick={() =>
@@ -521,7 +561,7 @@ const CustomizePanel: React.FC<CustomizePanelProps> = ({
               onClick={() => onStyleChange({ logoMode: 'auto' })}
             >
               <img src={link.logoUrl} alt="" className="qr-logo-thumb" />
-              <span>Auto — {link.platform?.name ?? link.hostname}</span>
+              <span>Auto ({link.platform?.name ?? link.hostname})</span>
             </button>
             <button
               className={`qr-logo-option ${qrStyle.logoMode === 'custom' ? 'active' : ''}`}
@@ -617,7 +657,7 @@ const CustomizePanel: React.FC<CustomizePanelProps> = ({
                   Cancel
                 </button>
               </div>
-              <p className="qr-panel-note">Drag to reposition · zoom to fill the frame.</p>
+              <p className="qr-panel-note">Drag to reposition and zoom to fill the frame.</p>
             </>
           ) : qrStyle.bgImageDataUrl ? (
             <>
@@ -627,8 +667,8 @@ const CustomizePanel: React.FC<CustomizePanelProps> = ({
                 <input
                   type="range"
                   className="qr-slider"
-                  min={30}
-                  max={80}
+                  min={0}
+                  max={100}
                   value={Math.round(qrStyle.imageVisibility * 100)}
                   onChange={(e) =>
                     onStyleChange({ imageVisibility: Number(e.target.value) / 100 })
@@ -639,7 +679,13 @@ const CustomizePanel: React.FC<CustomizePanelProps> = ({
               <div className="qr-upload-row">
                 <button
                   className="qr-upload-btn"
-                  onClick={() => openCrop(qrStyle.bgImageDataUrl!)}
+                  onClick={() =>
+                    openCrop(
+                      qrStyle.bgImageSrc ?? qrStyle.bgImageDataUrl!,
+                      qrStyle.bgCropZoom,
+                      qrStyle.bgCropOffset
+                    )
+                  }
                 >
                   Crop / Zoom
                 </button>
@@ -648,7 +694,14 @@ const CustomizePanel: React.FC<CustomizePanelProps> = ({
                 </button>
                 <button
                   className="qr-upload-btn danger"
-                  onClick={() => onStyleChange({ bgImageDataUrl: null })}
+                  onClick={() =>
+                    onStyleChange({
+                      bgImageDataUrl: null,
+                      bgImageSrc: null,
+                      bgCropZoom: 1,
+                      bgCropOffset: { x: 0, y: 0 },
+                    })
+                  }
                 >
                   Remove
                 </button>

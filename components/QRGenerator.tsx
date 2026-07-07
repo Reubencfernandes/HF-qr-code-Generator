@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useRef, useState, useLayoutEffect } from 'react';
+import React, { useRef, useState, useEffect, useLayoutEffect } from 'react';
 import { normalizeUrl, detectPlatform, DetectedLink } from '../lib/platforms';
+import { relativeLuminance } from '../lib/contrast';
 import QRCodeWithLogo from './QRCodeWithLogo';
 import HalftoneQR from './HalftoneQR';
 import CustomizePanel, { QrStyle, DEFAULT_QR_STYLE } from './CustomizePanel';
@@ -21,6 +22,51 @@ interface Toast {
   type: 'success' | 'error';
 }
 
+// Mean luma (0-255) of the band of the image the caption/brand text sits on.
+// The phone shows the cover-cropped center square of the image and the text
+// sits in its lower half, so sample that band. Mid tones get light text: white
+// with a dark shadow reads better there than gray.
+function isImageTextAreaDark(src: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const SAMPLE = 24;
+      const canvas = document.createElement('canvas');
+      canvas.width = SAMPLE;
+      canvas.height = SAMPLE;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return resolve(false);
+      const side = Math.min(img.width, img.height);
+      const sx = (img.width - side) / 2;
+      const sy = (img.height - side) / 2;
+      ctx.drawImage(
+        img,
+        sx + side * 0.15,
+        sy + side * 0.55,
+        side * 0.7,
+        side * 0.4,
+        0,
+        0,
+        SAMPLE,
+        SAMPLE
+      );
+      try {
+        const data = ctx.getImageData(0, 0, SAMPLE, SAMPLE).data;
+        let sum = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          sum += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+        }
+        resolve(sum / (data.length / 4) < 165);
+      } catch {
+        resolve(false);
+      }
+    };
+    img.onerror = () => resolve(false);
+    img.src = src;
+  });
+}
+
 const QRGenerator = () => {
   const [inputUrl, setInputUrl] = useState('');
   const [link, setLink] = useState<DetectedLink | null>(null);
@@ -35,6 +81,7 @@ const QRGenerator = () => {
   const [cardImage, setCardImage] = useState<string>('/cards/card1.jpg');
   const [qrStyle, setQrStyle] = useState<QrStyle>(DEFAULT_QR_STYLE);
   const [dockStyle, setDockStyle] = useState<React.CSSProperties | undefined>(undefined);
+  const [textOnDark, setTextOnDark] = useState(false);
 
   const gradients = [
     { name: 'Sunset', colors: ['#fa709a', '#fee140'] },
@@ -148,6 +195,28 @@ const QRGenerator = () => {
     };
   }, [showCustomize, cardStyle]);
 
+  // With a transparent card the caption/brand text sits straight on the
+  // background, so decide light vs dark text from what is actually behind it.
+  useEffect(() => {
+    if (cardBg !== 'transparent') {
+      setTextOnDark(false);
+      return;
+    }
+    if (cardStyle === 'image') {
+      let cancelled = false;
+      isImageTextAreaDark(cardImage).then((dark) => {
+        if (!cancelled) setTextOnDark(dark);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    const colors = customColor ? [customColor] : gradients[gradientIndex].colors;
+    const avg = colors.reduce((sum, c) => sum + relativeLuminance(c), 0) / colors.length;
+    setTextOnDark(avg < 0.45);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cardBg, cardStyle, cardImage, customColor, gradientIndex]);
+
   // Center logo: user upload wins, then the auto-detected platform/favicon logo.
   const resolvedLogoUrl =
     qrStyle.logoMode === 'none'
@@ -255,7 +324,7 @@ const QRGenerator = () => {
                     <QrCode className="h-6 w-6 sm:h-7 sm:w-7" />
                     <span className="text-lg sm:text-xl font-bold" style={{ fontFamily: 'var(--font-inter)' }}>QR Code Generator</span>
                   </div>
-                  <CardDescription className="text-muted-foreground text-sm sm:text-base" style={{ fontFamily: 'var(--font-inter)' }}>Generate a clean, customizable QR code for any link — we detect the platform automatically.</CardDescription>
+                  <CardDescription className="text-muted-foreground text-sm sm:text-base" style={{ fontFamily: 'var(--font-inter)' }}>Generate a clean, customizable QR code for any link. We detect the platform automatically.</CardDescription>
                 </div>
               </CardHeader>
               <CardContent className="p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-7">
@@ -277,7 +346,7 @@ const QRGenerator = () => {
                       />
                     </div>
                   </div>
-                  <p id="link-input-help" className="text-xs text-muted-foreground" style={{ paddingTop: '5px', paddingBottom: '4px', fontFamily: 'var(--font-inter)' }}>Paste any link — YouTube, GitHub, Hugging Face, Instagram, or your own website.</p>
+                  <p id="link-input-help" className="text-xs text-muted-foreground" style={{ paddingTop: '5px', paddingBottom: '4px', fontFamily: 'var(--font-inter)' }}>Paste any link: YouTube, GitHub, Hugging Face, Instagram, or your own website.</p>
                 </div>
 
                 <div className="pt-2 flex justify-center sm:justify-end">
@@ -325,7 +394,7 @@ const QRGenerator = () => {
               onClick={handleCycleBackground}
             >
               <div
-                className={`qr-card-v2${cardBg === 'transparent' ? ' transparent' : ''}`}
+                className={`qr-card-v2${cardBg === 'transparent' ? ' transparent' : ''}${cardBg === 'transparent' && textOnDark ? ' on-dark' : ''}`}
                 id="qr-card"
                 ref={cardRef}
                 style={cardBg ? { background: cardBg } : undefined}
