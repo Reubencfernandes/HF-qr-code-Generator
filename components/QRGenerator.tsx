@@ -362,8 +362,13 @@ const QRGenerator = () => {
                 </div>
 
                 {error && (
-                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg text-sm">
-                    {error}
+                  <div
+                    className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg text-sm"
+                    style={{ padding: '10px 14px', fontFamily: 'var(--font-inter)' }}
+                    role="alert"
+                  >
+                    <AlertCircle size={16} className="shrink-0" />
+                    <span>{error}</span>
                   </div>
                 )}
               </CardContent>
