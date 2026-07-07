@@ -114,7 +114,7 @@ const QRGenerator = () => {
     setError('');
     const normalized = normalizeUrl(inputUrl);
     if (!normalized) {
-      setError('Please enter a valid link, e.g. https://github.com/yourname');
+      setError('Please enter a valid link such as https://github.com/yourname');
       setShowQR(false);
       return;
     }
@@ -324,7 +324,7 @@ const QRGenerator = () => {
                     <QrCode className="h-6 w-6 sm:h-7 sm:w-7" />
                     <span className="text-lg sm:text-xl font-bold" style={{ fontFamily: 'var(--font-inter)' }}>QR Code Generator</span>
                   </div>
-                  <CardDescription className="text-muted-foreground text-sm sm:text-base" style={{ fontFamily: 'var(--font-inter)' }}>Generate a clean, customizable QR code for any link. We detect the platform automatically.</CardDescription>
+                  <CardDescription className="text-muted-foreground text-sm sm:text-base" style={{ fontFamily: 'var(--font-inter)' }}>Generate a clean and customizable QR code for any link. We detect the platform automatically.</CardDescription>
                 </div>
               </CardHeader>
               <CardContent className="p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-7">
@@ -346,7 +346,7 @@ const QRGenerator = () => {
                       />
                     </div>
                   </div>
-                  <p id="link-input-help" className="text-xs text-muted-foreground" style={{ paddingTop: '5px', paddingBottom: '4px', fontFamily: 'var(--font-inter)' }}>Paste any link: YouTube, GitHub, Hugging Face, Instagram, or your own website.</p>
+                  <p id="link-input-help" className="text-xs text-muted-foreground" style={{ paddingTop: '5px', paddingBottom: '4px', fontFamily: 'var(--font-inter)' }}>Works with YouTube, GitHub, Hugging Face, Instagram or your own website.</p>
                 </div>
 
                 <div className="pt-2 flex justify-center sm:justify-end">
@@ -364,7 +364,7 @@ const QRGenerator = () => {
                 {error && (
                   <div
                     className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg text-sm"
-                    style={{ padding: '10px 14px', fontFamily: 'var(--font-inter)' }}
+                    style={{ padding: '10px 14px', marginTop: '16px', fontFamily: 'var(--font-inter)' }}
                     role="alert"
                   >
                     <AlertCircle size={16} className="shrink-0" />

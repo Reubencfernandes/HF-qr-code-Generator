@@ -26,7 +26,7 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   title: "QR Code Generator",
-  description: "Generate clean, customizable QR codes for any link, with automatic platform logos, custom colors, shapes, and images",
+  description: "Generate clean and customizable QR codes for any link with automatic platform logos, colors, shapes and images",
   icons: {
     icon: "/qr-icon.svg",
     apple: "/qr-icon.svg",
