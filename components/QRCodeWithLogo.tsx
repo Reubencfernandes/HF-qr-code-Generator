@@ -1,77 +1,108 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import QRCodeStyling from 'qr-code-styling';
+import React, { useEffect, useRef } from 'react';
+import QRCodeStyling, {
+  Options,
+  DotType,
+  CornerSquareType,
+  CornerDotType,
+  ErrorCorrectionLevel,
+} from 'qr-code-styling';
 
 interface QRCodeWithLogoProps {
   value: string;
   logoUrl?: string;
   size?: number;
-  onQRCodeReady?: (qrCode: QRCodeStyling) => void;
   backgroundColor?: string;
   dotsColor?: string;
+  cornersSquareColor?: string;
+  cornersDotColor?: string;
+  dotsType?: DotType;
+  cornersSquareType?: CornerSquareType;
+  cornersDotType?: CornerDotType;
+  errorCorrectionLevel?: ErrorCorrectionLevel;
+  imageSize?: number;
 }
 
 const QRCodeWithLogo: React.FC<QRCodeWithLogoProps> = ({
   value,
   logoUrl,
   size = 300,
-  onQRCodeReady,
   backgroundColor = '#FFFFFF',
-  dotsColor = '#000000'
+  dotsColor = '#000000',
+  cornersSquareColor,
+  cornersDotColor,
+  dotsType = 'rounded',
+  cornersSquareType = 'extra-rounded',
+  cornersDotType = 'dot',
+  errorCorrectionLevel = 'M',
+  imageSize = 0.3,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const [qrCode, setQrCode] = useState<QRCodeStyling | null>(null);
 
   useEffect(() => {
-    if (!value) return;
+    if (!value || !ref.current) return;
 
-    const qrCodeInstance = new QRCodeStyling({
+    const options: Options = {
       width: size,
       height: size,
       type: 'svg',
       data: value,
-      image: logoUrl,
+      margin: 8,
+      qrOptions: {
+        errorCorrectionLevel,
+      },
       dotsOptions: {
         color: dotsColor,
-        type: 'rounded'
+        type: dotsType,
       },
       backgroundOptions: {
         color: backgroundColor,
       },
-      imageOptions: {
-        crossOrigin: 'anonymous',
-        margin: 10,
-        imageSize: 0.3,
-        hideBackgroundDots: true
-      },
       cornersSquareOptions: {
-        type: 'extra-rounded',
-        color: dotsColor
+        type: cornersSquareType,
+        color: cornersSquareColor ?? dotsColor,
       },
       cornersDotOptions: {
-        type: 'dot',
-        color: dotsColor
-      }
-    });
+        type: cornersDotType,
+        color: cornersDotColor ?? dotsColor,
+      },
+    };
 
-    setQrCode(qrCodeInstance);
-
-    if (ref.current) {
-      ref.current.innerHTML = '';
-      qrCodeInstance.append(ref.current);
+    if (logoUrl) {
+      options.image = logoUrl;
+      options.imageOptions = {
+        crossOrigin: 'anonymous',
+        margin: 10,
+        imageSize,
+        hideBackgroundDots: true,
+      };
     }
 
-    if (onQRCodeReady) {
-      onQRCodeReady(qrCodeInstance);
-    }
+    // Recreate each render: update() does not reliably clear a removed image,
+    // and prop changes are infrequent enough that teardown cost is negligible.
+    const qrCodeInstance = new QRCodeStyling(options);
+    const container = ref.current;
+    container.innerHTML = '';
+    qrCodeInstance.append(container);
 
     return () => {
-      if (ref.current) {
-        ref.current.innerHTML = '';
-      }
+      container.innerHTML = '';
     };
-  }, [value, logoUrl, size, backgroundColor, dotsColor, onQRCodeReady]);
+  }, [
+    value,
+    logoUrl,
+    size,
+    backgroundColor,
+    dotsColor,
+    cornersSquareColor,
+    cornersDotColor,
+    dotsType,
+    cornersSquareType,
+    cornersDotType,
+    errorCorrectionLevel,
+    imageSize,
+  ]);
 
   return <div ref={ref} className="qr-code-container" />;
 };

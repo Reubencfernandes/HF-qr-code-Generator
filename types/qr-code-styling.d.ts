@@ -1,4 +1,9 @@
 declare module 'qr-code-styling' {
+  export type DotType = 'rounded' | 'dots' | 'classy' | 'classy-rounded' | 'square' | 'extra-rounded';
+  export type CornerSquareType = 'dot' | 'square' | 'extra-rounded';
+  export type CornerDotType = 'dot' | 'square';
+  export type ErrorCorrectionLevel = 'L' | 'M' | 'Q' | 'H';
+
   export interface Options {
     width?: number;
     height?: number;
@@ -9,7 +14,7 @@ declare module 'qr-code-styling' {
     qrOptions?: {
       typeNumber?: number;
       mode?: 'Numeric' | 'Alphanumeric' | 'Byte' | 'Kanji';
-      errorCorrectionLevel?: 'L' | 'M' | 'Q' | 'H';
+      errorCorrectionLevel?: ErrorCorrectionLevel;
     };
     imageOptions?: {
       hideBackgroundDots?: boolean;
@@ -19,18 +24,18 @@ declare module 'qr-code-styling' {
     };
     dotsOptions?: {
       color?: string;
-      type?: 'rounded' | 'dots' | 'classy' | 'classy-rounded' | 'square' | 'extra-rounded';
+      type?: DotType;
     };
     backgroundOptions?: {
       color?: string;
     };
     cornersSquareOptions?: {
       color?: string;
-      type?: 'dot' | 'square' | 'extra-rounded';
+      type?: CornerSquareType;
     };
     cornersDotOptions?: {
       color?: string;
-      type?: 'dot' | 'square';
+      type?: CornerDotType;
     };
   }
 
@@ -40,7 +45,8 @@ declare module 'qr-code-styling' {
     download(options?: {
       name?: string;
       extension?: 'png' | 'jpeg' | 'webp' | 'svg';
-    }): Promise<Blob>;
+    }): Promise<void>;
+    getRawData(extension?: 'png' | 'jpeg' | 'webp' | 'svg'): Promise<Blob | null>;
     update(options?: Options): void;
   }
 }

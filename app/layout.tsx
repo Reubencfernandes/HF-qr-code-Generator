@@ -25,11 +25,11 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "HF QR Generator",
-  description: "Generate clean and beautiful QR codes for Hugging Face user profiles, models, datasets, and spaces with custom avatars",
+  title: "QR Code Generator",
+  description: "Generate clean, customizable QR codes for any link — with automatic platform logos, custom colors, shapes, and images",
   icons: {
-    icon: "/hf-logo.svg",
-    apple: "/hf-logo.svg",
+    icon: "/qr-icon.svg",
+    apple: "/qr-icon.svg",
   },
 };
 

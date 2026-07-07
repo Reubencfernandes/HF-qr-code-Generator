@@ -1,5 +1,5 @@
-import HuggingFaceQRGenerator from '../components/HuggingFaceQRGenerator';
+import QRGenerator from '../components/QRGenerator';
 
 export default function Home() {
-  return <HuggingFaceQRGenerator />;
+  return <QRGenerator />;
 }
